@@ -510,7 +510,36 @@ export async function resolveModelInfo(modelString: string): Promise<ModelInfo |
   const provider = state.providers[providerID]
   if (!provider) return null
 
-  return provider.models[modelID] ?? null
+  const existing = provider.models[modelID]
+  if (existing) return existing
+
+  // Provider exists (has credentials) but model not in catalog — build a minimal fallback
+  // so that custom/auth-store-only providers (e.g. "zhipuai-coding-plan") still work
+  return {
+    id: ModelID.make(modelID),
+    providerID: ProviderID.make(providerID),
+    name: modelID,
+    api: {
+      id: modelID,
+      url: "",
+      npm: "@ai-sdk/openai-compatible",
+    },
+    capabilities: {
+      temperature: true,
+      reasoning: false,
+      attachment: false,
+      toolcall: true,
+      input: { text: true, audio: false, image: false, video: false, pdf: false },
+      output: { text: true, audio: false, image: false, video: false, pdf: false },
+      interleaved: false,
+    },
+    cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+    limit: { context: 128000, output: 4096 },
+    status: "active",
+    options: {},
+    headers: {},
+    release_date: "",
+  }
 }
 
 /** Get default model from config or first available */

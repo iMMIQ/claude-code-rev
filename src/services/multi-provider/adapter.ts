@@ -157,12 +157,16 @@ export async function* queryModelViaAISDK({
   maxTokens,
   temperature,
 }: AdapterOptions): AsyncGenerator<StreamEvent | AssistantMessage, void> {
+  console.error(`[multi-provider] queryModelViaAISDK called with model=${modelInfo.id} provider=${modelInfo.providerID}`)
+
   // 1. Convert messages and tools
   const coreMessages = convertMessages(messages)
   const coreTools = convertTools(tools)
+  console.error(`[multi-provider] Converted ${coreMessages.length} messages, ${Object.keys(coreTools).length} tools`)
 
   // 2. Resolve the LanguageModelV3
   const languageModel = await getLanguageModel(modelInfo)
+  console.error(`[multi-provider] Got language model: ${typeof languageModel}`)
 
   // 3. Build options
   const providerOpts = getProviderOptions(modelInfo)
@@ -191,6 +195,10 @@ export async function* queryModelViaAISDK({
     let textContent: Array<{ type: string; text: string }> = []
 
     for await (const part of (await stream).fullStream) {
+      if (!ttftMs) {
+        ttftMs = Date.now()
+        console.error(`[multi-provider] First stream part received: type=${part.type}`)
+      }
       if (!ttftMs) ttftMs = Date.now()
 
       switch (part.type) {
