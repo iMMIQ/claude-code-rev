@@ -1052,11 +1052,12 @@ async function* queryModel(
   // ── Multi-provider routing ──────────────────────────────────
   // If the model string contains a non-Anthropic provider prefix
   // (e.g. "openai/gpt-4o"), route to the Vercel AI SDK adapter.
-  console.error(`[queryModel] model="${options.model}" isMulti=${isMultiProviderModel(options.model)}`)
+  const _dbg = (msg: string) => { try { require("fs").appendFileSync("/tmp/claude-multi-debug.log", `${new Date().toISOString()} ${msg}\n`) } catch {} }
+  _dbg(`queryModel model="${options.model}" isMulti=${isMultiProviderModel(options.model)}`)
   if (isMultiProviderModel(options.model)) {
     try {
       const modelInfo = await resolveModelInfo(options.model)
-      console.error(`[queryModel] resolveModelInfo=${modelInfo ? modelInfo.id : "null"}`)
+      _dbg(`resolveModelInfo=${modelInfo ? `${modelInfo.providerID}/${modelInfo.id} npm=${modelInfo.api.npm}` : "null"}`)
       if (modelInfo) {
         yield* queryModelViaAISDK({
           messages,
@@ -1070,7 +1071,7 @@ async function* queryModel(
         return
       }
     } catch (error) {
-      console.error(`[queryModel] multi-provider error:`, error)
+      _dbg(`multi-provider error: ${error instanceof Error ? error.message : String(error)}`)
       yield getAssistantMessageFromError(error as Error, options.model)
       return
     }
