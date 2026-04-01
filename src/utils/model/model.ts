@@ -23,7 +23,7 @@ import { getModelStrings, resolveOverriddenModel } from './modelStrings.js'
 import { formatModelPricing, getOpus46CostTier } from '../modelCost.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import type { PermissionMode } from '../permissions/PermissionMode.js'
-import { getAPIProvider } from './providers.js'
+import { getAPIProvider, isMultiProviderModel } from './providers.js'
 import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
@@ -452,6 +452,12 @@ export function parseUserSpecifiedModel(
   const modelString = has1mTag
     ? normalizedModel.replace(/\[1m]$/i, '').trim()
     : normalizedModel
+
+  // Multi-provider format: "openai/gpt-5", "google/gemini-2.5-pro"
+  // Pass through as-is so the routing layer can detect and handle it
+  if (isMultiProviderModel(modelString)) {
+    return modelInputTrimmed
+  }
 
   if (isModelAlias(modelString)) {
     switch (modelString) {

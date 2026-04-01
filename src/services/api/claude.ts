@@ -24,6 +24,7 @@ import {
   getAPIProvider,
   isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
+import { isMultiProviderModel, resolveModelInfo, queryModelViaAISDK } from '../multi-provider/index.js'
 import {
   getAttributionHeader,
   getCLISyspromptPrefix,
@@ -1047,6 +1048,31 @@ async function* queryModel(
     )
     return
   }
+
+  // ── Multi-provider routing ──────────────────────────────────
+  // If the model string contains a non-Anthropic provider prefix
+  // (e.g. "openai/gpt-4o"), route to the Vercel AI SDK adapter.
+  if (isMultiProviderModel(options.model)) {
+    try {
+      const modelInfo = await resolveModelInfo(options.model)
+      if (modelInfo) {
+        yield* queryModelViaAISDK({
+          messages,
+          systemPrompt: systemPrompt as unknown as string[],
+          tools,
+          modelInfo,
+          signal,
+          maxTokens: options.maxOutputTokensOverride,
+          temperature: options.temperatureOverride,
+        })
+        return
+      }
+    } catch (error) {
+      yield getAssistantMessageFromError(error as Error, options.model)
+      return
+    }
+  }
+  // ── End multi-provider routing ──────────────────────────────
 
   // Derive previous request ID from the last assistant message in this query chain.
   // This is scoped per message array (main thread, subagent, teammate each have their own),

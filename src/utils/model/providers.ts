@@ -13,6 +13,24 @@ export function getAPIProvider(): APIProvider {
         : 'firstParty'
 }
 
+/**
+ * Check if a model string uses the multi-provider format (providerID/modelID).
+ * Returns false for Anthropic-hosted models and plain model names.
+ */
+export function isMultiProviderModel(model: string): boolean {
+  if (!model.includes('/')) return false
+  // Exclude known Anthropic/AWS paths that use /
+  if (model.startsWith('us.anthropic.') || model.startsWith('eu.anthropic.')) return false
+  if (model.startsWith('arn:aws')) return false
+  if (model.match(/^(us|eu|global)\.(anthropic|amazon)/)) return false
+  if (model.includes('application-inference-profile')) return false
+  // Any non-Anthropic provider/model format is multi-provider
+  const [providerID] = model.split('/')
+  // Anthropic-hosted providers are NOT multi-provider (they use the native SDK)
+  if (['anthropic', 'amazon-bedrock', 'google-vertex', 'azure'].includes(providerID)) return false
+  return true
+}
+
 export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {
   return getAPIProvider() as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
 }
